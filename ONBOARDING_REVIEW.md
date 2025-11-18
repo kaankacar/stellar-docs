@@ -99,6 +99,9 @@ This document contains a comprehensive review of the Stellar/Soroban Getting Sta
 **Impact:** High - Developer may have incompatible Rust version and won't know why commands fail
 
 **Proposed Fix:**
+
+Add a Prerequisites section at the start of setup.mdx with the following content:
+
 ```markdown
 ## Prerequisites
 
@@ -107,15 +110,19 @@ Before starting, ensure you have:
 - Stellar CLI requires Rust **v1.89.0 or higher**
 
 To check your Rust version:
+```
+
 ```sh
 rustc --version
 ```
 
+```markdown
 To upgrade Rust:
+```
+
 ```sh
 rustup update stable
 rustup default stable
-```
 ```
 
 #### 2. **Contradictory Information About wasm32 Target**
@@ -143,16 +150,21 @@ rustup default stable
 **Impact:** High - Installation will fail for many Linux users
 
 **Proposed Fix:**
+
+Update the Linux installation note in setup.mdx:
+
 ```markdown
 :::note
 
 Installing from source requires a C build system and OpenSSL development libraries. 
 To install on Debian/Ubuntu, use:
+```
 
 ```sh
 sudo apt update && sudo apt install -y build-essential libssl-dev pkg-config
 ```
 
+```markdown
 :::
 ```
 
