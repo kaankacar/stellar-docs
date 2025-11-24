@@ -123,7 +123,12 @@ Install with cargo from source:
 Installing from source requires a C build system. To install a C build system on Debian/Ubuntu, use:
 
 ```
-sudo apt update && sudo apt install -y build-essential
+sudo apt update && sudo apt install -y \
+  build-essential \
+  libssl-dev \
+  pkg-config \
+  libdbus-1-dev \
+  libudev-dev
 ```
 
 :::
