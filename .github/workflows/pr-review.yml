@@ -56,10 +56,11 @@ jobs:
                current files on this base checkout; flag version/protocol statements that
                contradict docs elsewhere.
             4. Does it resolve an open issue? Say which (search if not referenced).
-            5. Post ONE review comment: verdict line first
-               (READY-FOR-HUMAN-APPROVAL / NEEDS-CHANGES / CONFLICTS-OR-STALE), then ✓/✗
-               mechanics list, then technical notes, then non-blocking nits. Point maintainers
-               at exactly what needs their judgment.
+            5. Post ONE review comment. Its FIRST line must be exactly:
+               🤖 **Claude docs review**
+               Then the verdict line (READY-FOR-HUMAN-APPROVAL / NEEDS-CHANGES /
+               CONFLICTS-OR-STALE), then ✓/✗ mechanics list, then technical notes, then
+               non-blocking nits. Point maintainers at exactly what needs their judgment.
             6. Trivial tier per policy (≤ ~10 lines, pure typo/link/version fix, no config):
                add label `auto-merge-candidate`.
             Never close, merge, or approve PRs. Never comment on your own previous comment —
