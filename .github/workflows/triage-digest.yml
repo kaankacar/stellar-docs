@@ -13,6 +13,7 @@ permissions:
   contents: read
   issues: write
   pull-requests: read
+  id-token: write   # claude-code-action exchanges the OAuth token via OIDC
 
 concurrency:
   group: triage-digest
