@@ -1,0 +1,56 @@
+name: Friday triage digest
+# Weekly metrics + narrative digest. Delivery: (1) always as a GitHub issue labeled
+# triage:digest — subscribe/watch that label to get it in your normal notifications;
+# (2) optionally to Slack if a SLACK_WEBHOOK_URL secret is configured. The Slack post is a
+# separate deterministic step (not the agent) so the webhook never mixes with agent tooling.
+
+on:
+  schedule:
+    - cron: "0 16 * * 5"   # Fridays 16:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+concurrency:
+  group: triage-digest
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          prompt: |
+            You are the digest agent for ${{ github.repository }}. Read
+            .github/triage-policy.md. Compute the last 7 days with `gh search` / `gh api`:
+            - issues opened (how many Raven sd-XXX) and closed (how many agent auto-closes:
+              refuted-Raven / exact-duplicate — identify by the agent's closing comments)
+            - PRs opened / merged / closed; current REVIEW_REQUIRED count and its trend
+            - agent triage actions taken; verdicts overridden by humans (label removed or
+              issue reopened after agent action)
+            - needs-human list: triage:close-candidate idle > 7 days, open P0s
+            Write a compact digest (the style: counts first, then 3-5 bullets of narrative,
+            then the needs-human list with links). Save it to digest.md in the workspace AND
+            create a GitHub issue titled "📊 Triage digest — week of <monday date>" with
+            label `triage:digest` and the digest as body.
+          claude_args: |
+            --model claude-sonnet-5
+            --allowedTools "Read,Grep,Glob,Write,Bash(gh issue list:*),Bash(gh issue view:*),Bash(gh issue create:*),Bash(gh pr list:*),Bash(gh search:*),Bash(gh api:*)"
+
+      - name: Post digest to Slack (only if webhook configured)
+        if: env.SLACK_WEBHOOK_URL != ''
+        run: |
+          [ -f digest.md ] || { echo "no digest.md produced"; exit 0; }
+          jq -Rs '{text: .}' digest.md | curl -sS -X POST -H 'Content-type: application/json' -d @- "$SLACK_WEBHOOK_URL"
