@@ -10,6 +10,7 @@ on:
 permissions:
   contents: read
   issues: write
+  id-token: write   # claude-code-action exchanges the OAuth token via OIDC
 
 concurrency:
   group: issue-triage-${{ github.event.issue.number }}
