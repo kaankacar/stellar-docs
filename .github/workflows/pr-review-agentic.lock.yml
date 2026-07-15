@@ -466,6 +466,12 @@ jobs:
         run: bash "${RUNNER_TEMP}/gh-aw/actions/configure_git_credentials.sh"
       - name: Checkout PR branch
         id: checkout-pr
+        # Fork-demo patch, applied by the repo owner (2026-07-15): the runtime repo is
+        # a fork, so gh-aw's checkout guard always refuses here; this workflow never
+        # executes PR code and reviews from the read-only merge ref, so skipping the
+        # step is safe. The real stellar/stellar-docs is not a fork - do NOT ship
+        # this patch upstream.
+        continue-on-error: true
         if: |
           github.event.pull_request || github.event.issue.pull_request || github.event_name == 'workflow_dispatch' && fromJSON(github.event.inputs.aw_context || '{}').item_type == 'pull_request'
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
