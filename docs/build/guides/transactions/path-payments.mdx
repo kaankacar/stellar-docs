@@ -74,7 +74,7 @@ let transaction = new TransactionBuilder(account, {
   .build();
 
 transaction.sign(receiverKP);
-const resp = await SERVER.submitTransaction(transaction);
+const resp = await horizonServer.submitTransaction(transaction);
 console.log("resp", resp);
 ```
 

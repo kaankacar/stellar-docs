@@ -30,7 +30,7 @@ curl -s https://horizon-testnet.stellar.org/claimable_balances/0000 | jq '.extra
 
 </CodeExample>
 
-Note that the SDKs make it a point to distinguish an invalid request (as above) versus a missing resource (a `404 Not Found`) (for example, the generic `NetworkError` versus a `NotFoundError` in the JavaScript SDK), where the latter might not be considered an error depending on your situation.
+Note that the SDKs make it a point to distinguish an invalid request (as above) versus a missing resource (a `404 Not Found`) (for example, the generic `NetworkError` versus a `NotFoundError` in the JavaScript SDK), where the latter might not be considered an error depending on your situation. For JavaScript-specific guidance, see the [JavaScript SDK error handling guide](https://stellar.github.io/js-stellar-sdk/guides/05-handle-errors/).
 
 ## Error Handling for Transaction Submissions
 
@@ -66,7 +66,9 @@ Submissions using the `/transactions_async` endpoint return an immediate respons
 <CodeExample>
 
 ```js
-let server = sdk.Server("https://horizon-testnet.stellar.org");
+let server = new StellarSdk.Horizon.Server(
+  "https://horizon-testnet.stellar.org",
+);
 let contractId = "CA3D5KRYM6CB7OWQ6TWYRR3Z4T7GNZLKERYNZGGA5SOAOPIFY6YQGAXE";
 let contract = new StellarSdk.Contract(contractId);
 
@@ -94,7 +96,7 @@ server.submitAsyncTransaction(transaction).then((result) => {
 });
 
 // Add a small sleep duration before polling the transaction.
-time.sleep(5 * time.Second);
+await new Promise((resolve) => setTimeout(resolve, 5000));
 server
   .transactions()
   .transaction(result.hash)
@@ -133,9 +135,11 @@ Example implementation:
 <CodeExample>
 
 ```js
-import { Horizon } from "@stellar/stellar-sdk";
+import * as StellarSdk from "@stellar/stellar-sdk";
 
-let server = Horizon.Server("https://horizon-testnet.stellar.org");
+let server = new StellarSdk.Horizon.Server(
+  "https://horizon-testnet.stellar.org",
+);
 
 function submitTransaction(tx, timeout) {
   if (!tx.timeBounds || tx.timeBounds.maxTime === 0) {
@@ -174,18 +178,31 @@ These errors typically occur when you have an outdated view of an account. This 
 
 ```js
 // suppose `account` is an outdated `AccountResponse` object
-let tx = sdk.TransactionBuilder(account, ...)/* etc */.build();
+let tx = new StellarSdk.TransactionBuilder(account, {
+  fee: StellarSdk.BASE_FEE,
+  networkPassphrase: StellarSdk.Networks.TESTNET,
+})
+  /* etc */
+  .build();
 server.submitTransaction(tx).catch(function (error) {
-  if (error.response && error.status == 400 && error.extras &&
-      error.extras.result_codes.transaction == sdk.TX_BAD_SEQ) {
-    return server.loadAccount(account.accountId())
-      .then(function (response) {
-        let tx = sdk.TransactionBuilder(response, ...)/* etc */.build()
-        return server.submitTransaction(tx);
-      });
+  if (
+    error.response &&
+    error.status == 400 &&
+    error.extras &&
+    error.extras.result_codes.transaction == StellarSdk.TX_BAD_SEQ
+  ) {
+    return server.loadAccount(account.accountId()).then(function (response) {
+      let tx = new StellarSdk.TransactionBuilder(response, {
+        fee: StellarSdk.BASE_FEE,
+        networkPassphrase: StellarSdk.Networks.TESTNET,
+      })
+        /* etc */
+        .build();
+      return server.submitTransaction(tx);
+    });
   }
   // ...other error conditions...
-})
+});
 ```
 
 </CodeExample>
