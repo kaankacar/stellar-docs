@@ -1,0 +1,73 @@
+name: Agent executor
+# EXECUTOR half of the reviewer→executor split. It takes the privileged actions — merge and
+# close — but ONLY on the strength of labels the reviewer/humans applied and the objective
+# check status. It NEVER reads PR/issue prose to decide, and runs NO model, so untrusted
+# content has no path to influence it. This is the same idea as gh-aw "safe outputs": the
+# thing that can write is deterministic and separate from the thing that reads.
+#
+# It runs as a reconciliation SWEEP (schedule + manual + on label), so it is also immune to
+# GitHub's "GITHUB_TOKEN-applied labels don't trigger workflows" rule — it just re-scans.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/30 * * * *"
+  issues:
+    types: [labeled]
+  pull_request_target:
+    types: [labeled]
+
+permissions:
+  contents: write         # merge
+  pull-requests: write    # merge / close / comment
+  issues: write           # close / comment
+
+concurrency:
+  group: agent-executor
+  cancel-in-progress: false
+
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      REPO: ${{ github.repository }}
+    steps:
+      - name: Merge trivial PRs approved by the reviewer
+        run: |
+          set -euo pipefail
+          for pr in $(gh pr list -R "$REPO" --label auto-merge-candidate --state open --json number -q '.[].number'); do
+            info=$(gh pr view "$pr" -R "$REPO" --json isDraft,mergeable,reviewDecision)
+            draft=$(echo "$info" | jq -r .isDraft)
+            mergeable=$(echo "$info" | jq -r .mergeable)
+            review=$(echo "$info" | jq -r .reviewDecision)
+            if [ "$draft" = "true" ];               then echo "PR #$pr: draft — skip";              continue; fi
+            if [ "$review" = "CHANGES_REQUESTED" ]; then echo "PR #$pr: changes requested — skip";  continue; fi
+            if [ "$mergeable" != "MERGEABLE" ];     then echo "PR #$pr: not mergeable ($mergeable) — skip"; continue; fi
+            # gh pr checks exits 0 only when every check has succeeded (8 = still pending, 1 = a failure)
+            if gh pr checks "$pr" -R "$REPO" >/dev/null 2>&1; then
+              gh pr comment "$pr" -R "$REPO" --body "🤖 **Agent executor**: merging — carries \`auto-merge-candidate\`, is mergeable, has no changes-requested review, and every check is green."
+              gh pr merge "$pr" -R "$REPO" --squash --delete-branch
+              echo "PR #$pr: merged"
+            else
+              echo "PR #$pr: checks not all green yet — will retry next sweep"
+            fi
+          done
+
+      - name: Close PRs approved for closing
+        run: |
+          set -euo pipefail
+          for pr in $(gh pr list -R "$REPO" --label triage:approve-close --state open --json number -q '.[].number'); do
+            gh pr comment "$pr" -R "$REPO" --body "🤖 **Agent executor**: closing per triage (label \`triage:approve-close\`). If this was premature, reopen and remove the label."
+            gh pr close "$pr" -R "$REPO"
+            echo "PR #$pr: closed"
+          done
+
+      - name: Close issues approved for closing
+        run: |
+          set -euo pipefail
+          for iss in $(gh issue list -R "$REPO" --label triage:approve-close --state open --json number -q '.[].number'); do
+            gh issue close "$iss" -R "$REPO" --comment "🤖 **Agent executor**: closing per triage (label \`triage:approve-close\`). If this was premature, reopen and remove the label."
+            echo "issue #$iss: closed"
+          done
