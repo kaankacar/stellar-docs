@@ -16,6 +16,7 @@ on:
 permissions:
   contents: read
   issues: write
+  pull-requests: write
   id-token: write   # claude-code-action exchanges the OAuth token via OIDC on normal events
 
 concurrency:
@@ -76,9 +77,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      # Assigning the Copilot coding agent needs a USER token (PAT with repo/issues:write) or a
-      # GitHub App user-to-server token — the default GITHUB_TOKEN cannot assign Copilot.
-      GH_TOKEN: ${{ secrets.ISSUE_AGENT_PAT }}
+      # First try the default Actions GITHUB_TOKEN (zero extra setup). If GitHub rejects it for
+      # the Copilot assignment, fall back to ISSUE_AGENT_PAT (a user-token PAT) when present.
+      GH_TOKEN: ${{ secrets.ISSUE_AGENT_PAT || secrets.GITHUB_TOKEN }}
       OWNER: ${{ github.repository_owner }}
       NAME: ${{ github.event.repository.name }}
       NUM: ${{ github.event.issue.number }}
@@ -86,11 +87,7 @@ jobs:
       - name: Assign Copilot to draft a PR (only for auto-fixable issues)
         run: |
           set -euo pipefail
-          if [ -z "${GH_TOKEN:-}" ]; then
-            echo "ISSUE_AGENT_PAT not set — cannot assign Copilot from CI (needs a user token). Skipping."
-            exit 0
-          fi
-          labels=$(GH_TOKEN="$GH_TOKEN" gh issue view "$NUM" -R "$OWNER/$NAME" --json labels -q '[.labels[].name]|join(",")')
+          labels=$(gh issue view "$NUM" -R "$OWNER/$NAME" --json labels -q '[.labels[].name]|join(",")')
           echo ",$labels," | grep -q ",triage:autofix-candidate," || { echo "Not auto-fixable — leaving for a human."; exit 0; }
 
           # Is the Copilot coding agent enabled + assignable on this repo?
