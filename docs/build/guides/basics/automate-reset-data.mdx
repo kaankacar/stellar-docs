@@ -49,6 +49,7 @@ Automating blockchain state on Stellar's Testnet and Futurenet can streamline de
 
 ```javascript
 import {
+  Asset,
   Networks,
   Keypair,
   TransactionBuilder,
@@ -59,6 +60,7 @@ import {
   LiquidityPoolAsset,
   LiquidityPoolFeeV18,
   BASE_FEE,
+  nativeToScVal,
 } from "@stellar/stellar-sdk";
 import { Server, Api } from "@stellar/stellar-sdk/rpc";
 import fs from "fs";
@@ -177,7 +179,7 @@ async function createLiquidityPool(accountKeypair, nativeAsset, customAsset) {
 
     const transaction = new TransactionBuilder(account, {
       fee: BASE_FEE,
-      networkPassphrase: networkPassPhrase,
+      networkPassphrase,
     })
       .addOperation(
         Operation.changeTrust({
@@ -260,9 +262,7 @@ async function deployAndInvokeContract(deployer, contractWasmFilePath) {
     }
     console.log(`Contract Deployed...`);
 
-    const contractAddr = Address.fromScAddress(
-      returnContractResponse.returnValue.address(),
-    );
+    const contractAddr = Address.fromScAddress(status.returnValue.address());
     const contractId = contractAddr.toString();
     const contract = new Contract(contractId);
 

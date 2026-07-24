@@ -147,6 +147,8 @@ Much like an [account](#accounts), the resulting entry has a balance, but it als
 <CodeExample>
 
 ```typescript
+import { Asset, AssetType, xdr } from "@stellar/stellar-sdk";
+
 let asset: string;
 let rawAsset = trustlineEntryData.asset();
 
@@ -384,6 +386,8 @@ Once we've learned to _build_ and _parse_ these (which we've done above at lengt
 <CodeExample>
 
 ```typescript
+import { Server } from "@stellar/stellar-sdk/rpc";
+
 const s = new Server("https://soroban-testnet.stellar.org");
 
 // assume key1 is an account, key2 is a trustline, and key3 is contract data

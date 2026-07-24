@@ -63,16 +63,18 @@ In this variant, we will leverage the "source account authorization" variant: th
 ```javascript
 import {
   Asset,
+  BASE_FEE,
   Keypair,
   Networks,
   Operation,
   authorizeEntry,
+  nativeToScVal,
   TransactionBuilder,
   xdr,
 } from "@stellar/stellar-sdk";
 import { Server, assembleTransaction } from "@stellar/stellar-sdk/rpc";
 
-const s = Server("https://soroban-testnet.stellar.org");
+const s = new Server("https://soroban-testnet.stellar.org");
 
 // Pretend is is a real, funded account.
 const signer = Keypair.random();
@@ -116,17 +118,20 @@ In this variant, we'll extend the required signatures to more than one party, so
 
 ```typescript
 import {
+  Address,
   Asset,
+  BASE_FEE,
   Keypair,
   Networks,
   Operation,
   authorizeEntry,
+  nativeToScVal,
   TransactionBuilder,
   xdr,
 } from "@stellar/stellar-sdk";
 import { Server, assembleTransaction } from "@stellar/stellar-sdk/rpc";
 
-const s = Server("https://soroban-testnet.stellar.org");
+const s = new Server("https://soroban-testnet.stellar.org");
 
 // Pretend these are real, funded accounts.
 const signers = [Keypair.random(), Keypair.random()];
@@ -176,7 +181,7 @@ async function main() {
               ).toString() === signer.publicKey(),
           )
         : null,
-      response.latestLedger + 12, // signature is valid for ~1m
+      simResult.latestLedger + 12, // signature is valid for ~1m
       Networks.TESTNET,
     ),
   );
